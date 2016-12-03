@@ -1,6 +1,6 @@
 (defproject data-nav-reframe "0.1.0-SNAPSHOT"
-  :dependencies [[org.clojure/clojure "1.8.0"]
-                 [org.clojure/clojurescript "1.9.229"]
+  :dependencies [[org.clojure/clojure "1.9.0-alpha13"]
+                 [org.clojure/clojurescript "1.9.293"]
                  [reagent "0.6.0"]
                  [re-frame "0.8.0"]
                  [re-frisk "0.3.0"]
@@ -8,7 +8,8 @@
                  [re-com "0.8.3"]
                  [secretary "1.2.3"]
                  [garden "1.3.2"]
-                 [ns-tracker "0.3.0"]]
+                 [ns-tracker "0.3.0"]
+                 ]
 
   :plugins [[lein-cljsbuild "1.1.4"]
             [lein-garden "0.2.8"]
@@ -17,6 +18,12 @@
   :min-lein-version "2.5.3"
 
   :source-paths ["src/clj"]
+
+  :repl-options {:port 8230
+                 :nrepl-middleware [dirac.nrepl/middleware]
+                 :init (do
+                         (require 'dirac.agent)
+                         (dirac.agent/boot!))}
 
   :clean-targets ^{:protect false} ["resources/public/js/compiled" "target"
                                     "test/js"
@@ -35,9 +42,11 @@
 
   :profiles
   {:dev
-   {:dependencies [[binaryage/devtools "0.8.2"]]
+   {:dependencies [[binaryage/devtools "0.8.3"]
+                   [binaryage/dirac "0.8.4"]
+                   ]
 
-    :plugins      [[lein-figwheel "0.5.7"]
+    :plugins      [[lein-figwheel "0.5.8"]
                    [lein-doo "0.1.7"]]
     }}
 

@@ -1,13 +1,16 @@
 (ns data-nav-reframe.core
     (:require [reagent.core :as reagent]
-              [re-frame.core :as re-frame]
+              [re-frame.core :refer [dispatch-sync]]
               [re-frisk.core :refer [enable-re-frisk!]]
               [data-nav-reframe.events]
               [data-nav-reframe.subs]
               [data-nav-reframe.routes :as routes]
               [data-nav-reframe.views :as views]
-              [data-nav-reframe.config :as config]))
+              [data-nav-reframe.config :as config]
+              [dirac.runtime]
+              ))
 
+(dirac.runtime/install!)
 
 (defn dev-setup []
   (when config/debug?
@@ -21,6 +24,6 @@
 
 (defn ^:export init []
   (routes/app-routes)
-  (re-frame/dispatch-sync [:initialize-db])
+  (dispatch-sync [:initialize-db])
   (dev-setup)
   (mount-root))
