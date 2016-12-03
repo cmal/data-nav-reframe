@@ -22,7 +22,6 @@
   (str (* index 80) "px"))
 
 (defn left-bar-btn-style [index active]
-  (log "left-bar-btn-style" index active)
   {:position "absolute"
    :top (left-bar-icon-top index)
    :border-bottom "1px solid #777"
@@ -79,18 +78,33 @@
              :width "100%"
              }]))
 
+(defn show-panel-child []
+  (fn [{:keys [id text]}]
+    [:div.show-panel-child
+     [:div.child-text
+      text]
+     [:div.child-delete
+      [re-com/md-icon-button
+       :md-icon-name "zmdi-delete"
+       :size :smaller
+       :on-click #(dispatch [:delete-show-panel-child id])
+       ]]])
+  )
+
 (defn show-panel []
   [:div.show-panel
-   (let [children (subscribe [:show-panel-child])]
-     (for [x (range (count @children))
-           :let [child (nth @children x)]]
-       ^{:key x}
+   (let [children @(subscribe [:show-panel-child])]
+     (for [child children
+           :let [[k v] child]
+           ]
+       ^{:key k}
        [re-com/box
-        :child child
+        :child [show-panel-child v]
         :style {
                 :background-color "white"
                 :margin-bottom "10px"
-                }]))])
+                }])
+     )])
 
 (defn results []
   (fn []
@@ -98,7 +112,7 @@
      [input]
      [re-com/button
       :label "Gen Result！"
-      :on-click #(dispatch [:gen-result])
+      :on-click #(dispatch [:add-result])
       :style {
               :margin-top "-10px"
               :margin-bottom "10px"
