@@ -19,4 +19,23 @@
 (reg-event-db
  :left-bar-select
  (fn [db [_ index]]
+   (log index db)
    (assoc db :left-bar-active index)))
+
+(reg-event-db
+ :send-input
+ (fn [db [_ name]]
+   (let [text name]
+     (assoc db :input-text text))))
+
+(reg-event-db
+ :change-input-text
+ (fn [db [_ text]]
+   (log db text)
+   (assoc db :input-text text)))
+
+(reg-event-db
+ :gen-result
+ (fn [db _]
+   (log db)
+   (update db :show-panel-child #(conj % (:input-text db)))))

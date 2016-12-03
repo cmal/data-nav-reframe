@@ -8,42 +8,6 @@
 
 (dirac.runtime/install!)
 
-;; home
-
-;; (defn home-title []
-;;   (let [name (re-frame/subscribe [:name])]
-;;     (fn []
-;;       [re-com/title
-;;        :label (str "Hello from " @name ". This is the Home Page.")
-;;        :level :level1])))
-
-;; (defn link-to-about-page []
-;;   [re-com/hyperlink-href
-;;    :label "go to About Page"
-;;    :href "#/about"])
-
-;; (defn home-panel []
-;;   [re-com/v-box
-;;    :gap "1em"
-;;    :children [[home-title] [link-to-about-page]]])
-
-
-;; (defn left-bar-icon [icon index]
-;;   [re-com/box
-;;    :height "80px"
-;;    :width "80px"
-;;    :child [re-com/md-icon-button
-;;            :md-icon-name icon
-;;            :size :larger
-;;            :on-click #()
-;;            ]
-;;    :style {
-;;            :border-bottom "1px solid white"
-;;            :color "white"
-;;            :position "absolute"
-;;            :top (left-bar-icon-top index)
-;;            }])
-
 (def icons
   [{:id "zmdi-plus"    :label [:i {:class "zmdi zmdi-plus"}]}
    {:id "zmdi-delete"  :label [:i {:class "zmdi zmdi-delete"}]}
@@ -58,11 +22,12 @@
   (str (* index 80) "px"))
 
 (defn left-bar-btn-style [index active]
+  (log "left-bar-btn-style" index active)
   {:position "absolute"
    :top (left-bar-icon-top index)
-   :border-bottom "1px solid #999"
+   :border-bottom "1px solid #777"
    :border-radius "0"
-   :color "#ddd"
+   :color (if active "#FFAF00" "#777")
    :background-color (if active "rgba(0,0,0,0.25)" "transparent")
    :height "80px"
    :width "80px"
@@ -70,27 +35,12 @@
    }
   )
 
-(defn left-bar-btn [name index active]
-  (fn [name index active]
-    [re-com/box
-     :size "80px"
-     :child [re-com/md-icon-button
-             :md-icon-name name
-             :size :larger
-             :on-click #(dispatch [:left-bar-select index])
-             :style (left-bar-btn-style index active)
-             ]
-     ])
-  )
-
-
 (defn left-bar []
-  (let [selected (subscribe [:left-bar-active])
-        ]
+  (let [selected @(subscribe [:left-bar-active])]
     [re-com/v-box
      :children (for [index (range (count icons))
                      :let [name (:id (nth icons index))
-                           selected? (= index @selected)]]
+                           selected? (= selected index)]]
                  ^{:key index}
                  [re-com/box
                   :size "80px"
@@ -99,18 +49,61 @@
                           :size :larger
                           :on-click #(dispatch [:left-bar-select index])
                           :style (left-bar-btn-style index selected?)]
-                  ])
-     ]
-))
+                  ])]))
 
 
-;; (defn drawer []
-;;   (let [selected (re-frame/subscribe [:left-bar-active])
-;;         ]
-;;     (fn []
-;;       [re-com/box
-;;        :child "dsfa"]))
-;;   )
+(defn drawer []
+  (let [selected (subscribe [:left-bar-active])
+        name (:id (nth icons @selected))]
+    [re-com/v-box
+     :children [
+                [re-com/box
+                 :child name]
+                [re-com/button
+                 :label "Send Input! =>>"
+                 :on-click #(dispatch [:send-input name])]
+                ]
+     :gap "15px"
+     :style {
+             :padding "20px"
+             }]))
+
+(defn input []
+  (let [query @(subscribe [:input-text])]
+    [re-com/input-textarea
+     :model query
+     :on-change #(dispatch [:change-input-text %])
+     :status (if true nil :error)
+     :placeholder "Input a query and press the BUTTON below"
+     :style {
+             :width "100%"
+             }]))
+
+(defn show-panel []
+  [:div.show-panel
+   (let [children (subscribe [:show-panel-child])]
+     (for [x (range (count @children))
+           :let [child (nth @children x)]]
+       ^{:key x}
+       [re-com/box
+        :child child
+        :style {
+                :background-color "white"
+                :margin-bottom "10px"
+                }]))])
+
+(defn results []
+  (fn []
+    [:div.result-container
+     [input]
+     [re-com/button
+      :label "Gen Result！"
+      :on-click #(dispatch [:gen-result])
+      :style {
+              :margin-top "-10px"
+              :margin-bottom "10px"
+              }]
+     [show-panel]]))
 
 (defn main-panel []
   [re-com/h-box
@@ -123,52 +116,16 @@
                        :background-color "#4C4957"
                        }]
               [re-com/box
-               :child "drawer"
+               :child [drawer]
                :size "300px"
                :style {
                        :padding "10px"
                        :background-color "#30333A"
                        }]
               [re-com/box
-               :child "results"
+               :child [results]
                :size "1 2 200px"
                :style {
                        :padding "0 20px"
                        :background-color "#D2D5DA"
                        }]]])
-
-;; about
-
-;; (defn about-title []
-;;   [re-com/title
-;;    :label "This is the About Page."
-;;    :level :level1])
-
-;; (defn link-to-home-page []
-;;   [re-com/hyperlink-href
-;;    :label "go to Home Page"
-;;    :href "#/"])
-
-;; (defn about-panel []
-;;   [re-com/v-box
-;;    :gap "1em"
-;;    :children [[about-title] [link-to-home-page]]])
-
-
-;; ;; main
-
-;; (defmulti panels identity)
-;; (defmethod panels :home-panel [] [home-panel])
-;; (defmethod panels :about-panel [] [about-panel])
-;; (defmethod panels :default [] [:div])
-
-;; (defn show-panel
-;;   [panel-name]
-;;   [panels panel-name])
-
-;; (defn main-panel []
-;;   (let [active-panel (re-frame/subscribe [:active-panel])]
-;;     (fn []
-;;       [re-com/v-box
-;;        :height "100%"
-;;        :children [[panels @active-panel]]])))

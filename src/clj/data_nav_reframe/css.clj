@@ -4,5 +4,6 @@
 
 (defstyles screen
   [:body {:color "red"}]
-  [:.level1 {:color "green"}]
+  [:div.result-container {:width "100%"}]
+  [:div.rc-input-text {:width "100% !important"}]
 )
