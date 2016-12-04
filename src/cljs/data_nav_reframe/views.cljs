@@ -1,21 +1,14 @@
 (ns data-nav-reframe.views
-  (:require [re-frame.core :refer [subscribe dispatch]]
+  (:require [re-frame.core :refer [subscribe dispatch dispatch-sync]]
             [re-com.core :as re-com]
+            [data-nav-reframe.config :as conf]
             [dirac.runtime]
+            [reagent.core :as reagent]
             )
   (:require-macros [data-nav-reframe.core :refer [log]])
   )
 
 (dirac.runtime/install!)
-
-(def icons
-  [{:id "zmdi-plus"    :label [:i {:class "zmdi zmdi-plus"}]}
-   {:id "zmdi-delete"  :label [:i {:class "zmdi zmdi-delete"}]}
-   {:id "zmdi-undo"    :label [:i {:class "zmdi zmdi-undo"}]}
-   {:id "zmdi-home"    :label [:i {:class "zmdi zmdi-home"}]}
-   {:id "zmdi-account" :label [:i {:class "zmdi zmdi-account"}]}
-   {:id "zmdi-info"    :label [:i {:class "zmdi zmdi-info"}]}])
-
 
 
 (defn left-bar-icon-top [index]
@@ -37,8 +30,8 @@
 (defn left-bar []
   (let [selected @(subscribe [:left-bar-active])]
     [re-com/v-box
-     :children (for [index (range (count icons))
-                     :let [name (:id (nth icons index))
+     :children (for [index (range (count conf/icons))
+                     :let [name (:id (nth conf/icons index))
                            selected? (= selected index)]]
                  ^{:key index}
                  [re-com/box
@@ -51,32 +44,95 @@
                   ])]))
 
 
+(defn drawer-child []
+  (let [query (reagent/atom "")
+        stockid (reagent/atom "")]
+    (fn [{:keys [id label]}]
+      [re-com/v-box
+       ;; :div.drawer-child
+       :children
+       [[re-com/box
+         :child
+         [:div.drawer-child-title id]],
+        [re-com/box
+         :child
+         [re-com/single-dropdown
+          :choices conf/home-choices
+          :model nil
+          :placeholder "Have a choice..."
+          :on-change #(reset! query %)
+          :width "100%"]
+         :style
+         {
+          :padding "0 10px"
+          }],
+        [re-com/box
+         :child
+         [:div.stockid-input
+          [:div.stockid-label "股票代码:"]
+          [re-com/input-text
+           :class (log @query @stockid)
+           :model stockid
+           :on-change #(reset! stockid %)
+           :placeholder "600123.SH"]]
+         :style
+         {
+          :padding "0 10px"
+          }],
+        ;; send input button
+        [re-com/box
+         :child
+         [re-com/button
+          :label "生成查询语句"
+          :on-click #(dispatch
+                      [:send-input
+                       {:query @query
+                        :stockid @stockid}])
+          :class "btn-warning"
+          ]
+         :style
+         {
+          :padding "0 10px"
+          }],
+
+        ]
+       :gap "10px"
+       ]
+      ))
+  )
+
+
 (defn drawer []
-  (let [selected (subscribe [:left-bar-active])
-        name (:id (nth icons @selected))]
+  (let [index (subscribe [:left-bar-active])
+        item (nth conf/icons @index)
+        name (:id (nth conf/icons @index))
+        box [drawer-child item]
+        ]
     [re-com/v-box
-     :children [
-                [re-com/box
-                 :child name]
-                [re-com/button
-                 :label "Send Input! =>>"
-                 :on-click #(dispatch [:send-input name])]
-                ]
-     :gap "15px"
-     :style {
-             :padding "20px"
-             }]))
+     :children [box, ]
+     :gap "10px"
+     :width "100%"
+     ]))
 
 (defn input []
   (let [query @(subscribe [:input-text])]
     [re-com/input-textarea
      :model query
-     :on-change #(dispatch [:change-input-text %])
+     :on-change #(dispatch-sync [:change-input-text %])
      :status (if true nil :error)
      :placeholder "Input a query and press the BUTTON below"
-     :style {
-             :width "100%"
-             }]))
+     :style
+     {
+      :position "relative"
+      :width "100%"
+      :top "10px"
+      :outline "10px solid rgba(172,172,172,0.25)"
+      :outline-offset "-10px"
+      :margin-bottom "10px"
+      :border "0"
+      :border-radius "0"
+      :font-size "24px"
+      }]))
 
 (defn show-panel-child []
   (fn [{:keys [id text]}]
@@ -100,10 +156,11 @@
        ^{:key k}
        [re-com/box
         :child [show-panel-child v]
-        :style {
-                :background-color "white"
-                :margin-bottom "10px"
-                }])
+        :style
+        {
+         :background-color "white"
+         :margin-bottom "10px"
+         }])
      )])
 
 (defn results []
@@ -111,12 +168,14 @@
     [:div.result-container
      [input]
      [re-com/button
-      :label "Gen Result！"
+      :label "查看结果"
       :on-click #(dispatch [:add-result])
-      :style {
-              :margin-top "-10px"
-              :margin-bottom "10px"
-              }]
+      :class "btn-primary"
+      :style
+      {
+       :margin-top "-10px"
+       :margin-bottom "10px"
+       }]
      [show-panel]]))
 
 (defn main-panel []
@@ -126,20 +185,22 @@
    :children [[re-com/box
                :child [left-bar]
                :size "80px"
-               :style {
-                       :background-color "#4C4957"
-                       }]
+               :style
+               {
+                :background-color "#4C4957"
+                }]
               [re-com/box
                :child [drawer]
                :size "300px"
-               :style {
-                       :padding "10px"
-                       :background-color "#30333A"
-                       }]
+               :style
+               {
+                :background-color "#30333A"
+                }]
               [re-com/box
                :child [results]
                :size "1 2 200px"
-               :style {
-                       :padding "0 20px"
-                       :background-color "#D2D5DA"
-                       }]]])
+               :style
+               {
+                :padding "0 20px"
+                :background-color "#D2D5DA"
+                }]]])

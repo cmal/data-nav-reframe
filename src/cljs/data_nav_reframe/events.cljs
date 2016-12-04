@@ -34,9 +34,9 @@
 
 (reg-event-db
  :send-input
- (fn [db [_ name]]
-   (let [text name]
-     (assoc db :input-text text))))
+ (fn [db [_ query]]
+   (log query)
+   (assoc db :input-text (str query))))
 
 (reg-event-db
  :change-input-text
