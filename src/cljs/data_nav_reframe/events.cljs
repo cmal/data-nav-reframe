@@ -1,8 +1,13 @@
 (ns data-nav-reframe.events
     (:require [re-frame.core :refer [reg-event-db]]
               [data-nav-reframe.db :as db]
-              [dirac.runtime])
-    (:require-macros [data-nav-reframe.core :refer [log]]))
+              [dirac.runtime]
+              [cljs.core.async :as async]
+              [ajax.core :refer [GET POST]]
+              )
+    (:require-macros [data-nav-reframe.core :refer [log]]
+                     [cljs.core.async.macros :as async-macros]
+                     ))
 
 (dirac.runtime/install!)
 

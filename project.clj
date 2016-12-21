@@ -5,6 +5,7 @@
                  [re-frame "0.8.0"]
                  [re-frisk "0.3.0"]
                  [org.clojure/core.async "0.2.391"]
+                 [cljs-ajax "0.5.8"]
                  [re-com "0.8.3"]
                  [secretary "1.2.3"]
                  [garden "1.3.2"]

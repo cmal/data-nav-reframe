@@ -32,4 +32,8 @@
    {
     :color "#c987d2"
     }]
+  [:div.chart
+   {
+    :clear "both"
+    }]
   )

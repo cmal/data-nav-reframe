@@ -20,3 +20,8 @@
  :show-panel-child
  (fn [db _]
    (:show-panel-child db)))
+
+(reg-sub
+ :circles
+ (fn [db _]
+   (:circles db)))

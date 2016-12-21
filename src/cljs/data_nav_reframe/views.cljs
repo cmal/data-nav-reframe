@@ -1,11 +1,11 @@
 (ns data-nav-reframe.views
+  (:require-macros [data-nav-reframe.core :refer [log]])
   (:require [re-frame.core :refer [subscribe dispatch dispatch-sync]]
             [re-com.core :as re-com]
             [data-nav-reframe.config :as conf]
             [dirac.runtime]
             [reagent.core :as reagent]
             )
-  (:require-macros [data-nav-reframe.core :refer [log]])
   )
 
 (dirac.runtime/install!)
@@ -134,6 +134,46 @@
       :font-size "24px"
       }]))
 
+(defn d3-inner [data]
+  (log data)
+  (reagent/create-class
+   {
+    :component-did-mount (fn []
+                           (let [d3data (clj->js data)]
+                             (.. js/d3
+                                 (select "svg")
+                                 (selectAll "circle")
+                                 (data d3data)
+                                 enter
+                                 (append "svg:circle")
+                                 (attr "cx" (fn [d] (.-x d)))
+                                 (attr "cy" (fn [d] (.-y d)))
+                                 (attr "r" (fn [d] (.-r d)))
+                                 (attr "fill" (fn [d] (.-color d))))))
+
+    :component-did-update (fn [this]
+                            (let [[_ data] (reagent/argv this)
+                                  d3data (clj->js data)
+                                  _ (log data)]
+                              (.. js/d3
+                                  (selectAll "circle")
+                                  (data d3data)
+                                  (attr "cx" (fn [d] (log d) (.-x d)))
+                                  (attr "cy" (fn [d] (.-y d)))
+                                  (attr "r" (fn [d] (.-r d))))))
+    :display-name "d3-inner"
+    :reagent-render (fn [] [:div [:svg {:width 150 :height 150}]])
+    }))
+
+(defn chart-1 []
+  (let [data @(subscribe [:circles])]
+    (fn []
+      [:div.chart
+       ;; [re-com/throbber
+       ;;  :size :small
+       ;;  :color "gray"]
+       [d3-inner data]])))
+
 (defn show-panel-child []
   (fn [{:keys [id text]}]
     [:div.show-panel-child
@@ -144,7 +184,8 @@
        :md-icon-name "zmdi-delete"
        :size :smaller
        :on-click #(dispatch [:delete-show-panel-child id])
-       ]]])
+       ]]
+     [chart-1]])
   )
 
 (defn show-panel []
@@ -177,6 +218,7 @@
        :margin-bottom "10px"
        }]
      [show-panel]]))
+
 
 (defn main-panel []
   [re-com/h-box
