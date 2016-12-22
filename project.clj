@@ -44,7 +44,7 @@
   :profiles
   {:dev
    {:dependencies [[binaryage/devtools "0.8.3"]
-                   [binaryage/dirac "0.8.4"]
+                   [binaryage/dirac "0.8.5"]
                    ]
 
     :plugins      [[lein-figwheel "0.5.8"]

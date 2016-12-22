@@ -7,6 +7,7 @@
    :input-text ""
    :show-panel-child (sorted-map-by >)
    :test "test"
+   :stockid ""
    :circles [{:name "circle 1"
               :x 10
               :y 10

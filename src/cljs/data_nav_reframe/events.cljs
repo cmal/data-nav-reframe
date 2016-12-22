@@ -4,6 +4,7 @@
               [dirac.runtime]
               [cljs.core.async :as async]
               [ajax.core :refer [GET POST]]
+              [re-frame.core :refer [dispatch]]
               )
     (:require-macros [data-nav-reframe.core :refer [log]]
                      [cljs.core.async.macros :as async-macros]
@@ -49,17 +50,37 @@
    (assoc db :input-text text)))
 
 (reg-event-db
- :add-result
+ :get-data
  (fn [db _]
    (let [children (:show-panel-child db)
-         id (allocate-next-id children)]
+         id (allocate-next-id children)
+         query (:input-text db)]
+     (GET
+      ;; "https://www.joudou.com/stockinfogate/test"
+      "http://localhost:6787/stock/realtime?stockids=600123.SH"
+      {
+       :handler #(dispatch [:process-response % id])
+       :error-handler #()
+       })
      (update db :show-panel-child
              #(assoc % id
                      {:id id
-                      :text (:input-text db)})))))
+                      :text ""})))))
+
+(reg-event-db
+ :process-response
+ (fn [db [_ data id]]
+   (.log js/console data id)
+   (assoc-in db [:show-panel-child id :text] (str data))))
 
 (reg-event-db
  :delete-show-panel-child
  (fn [db [_ index]]
    (update db :show-panel-child
            #(dissoc % index))))
+
+
+(reg-event-db
+ :remember-stockid
+ (fn [db [_ stockid]]
+   (assoc db :stockid stockid)))

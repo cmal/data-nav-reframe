@@ -5,55 +5,131 @@
             [data-nav-reframe.config :as conf]
             [dirac.runtime]
             [reagent.core :as reagent]
+            [ajax.core :refer [GET POST]]
             )
   )
 
 (dirac.runtime/install!)
 
 
-(defn left-bar-icon-top [index]
-  (str (* index 80) "px"))
 
-(defn left-bar-btn-style [index active]
-  {:position "absolute"
-   :top (left-bar-icon-top index)
-   :border-bottom "1px solid #777"
-   :border-radius "0"
-   :color (if active "#FFAF00" "#777")
-   :background-color (if active "rgba(0,0,0,0.25)" "transparent")
-   :height "80px"
-   :width "80px"
-   :line-height "80px"
-   }
-  )
+(defn left-bar-btn [index]
+  (let [selected (subscribe [:left-bar-active])]
+    (fn [index]
+      [re-com/md-icon-button
+       :md-icon-name (:id (nth conf/icons index))
+       :size :larger
+       :on-click #(dispatch [:left-bar-select index])
+       :style
+       {:position "absolute"
+        :top (str (* index 80) "px")
+        :border-bottom "1px solid #777"
+        :border-radius "0"
+        :color (if (= @selected index) "#FFAF00" "#777")
+        :background-color (if (= @selected index)
+                            "rgba(0,0,0,0.25)"
+                            "transparent")
+        :height "80px"
+        :width "80px"
+        :line-height "80px"
+        }])))
 
 (defn left-bar []
-  (let [selected @(subscribe [:left-bar-active])]
-    [re-com/v-box
-     :children (for [index (range (count conf/icons))
-                     :let [name (:id (nth conf/icons index))
-                           selected? (= selected index)]]
-                 ^{:key index}
-                 [re-com/box
-                  :size "80px"
-                  :child [re-com/md-icon-button
-                          :md-icon-name name
-                          :size :larger
-                          :on-click #(dispatch [:left-bar-select index])
-                          :style (left-bar-btn-style index selected?)]
-                  ])]))
+  [re-com/v-box
+   :children
+   (for [index (range (count conf/icons))
+         ]
+     ^{:key index}
+     [re-com/box
+      :size "80px"
+      :child [left-bar-btn index]])])
 
 
-(defn drawer-child []
+(def tree
+  {:label "APIs"
+   :items
+   [{:label "dashboard"
+     :items
+     [{:label "stock"
+       :items
+       [{:label "kchart"}
+        {:label "realtime info"}
+        {:label "fenshitu"}
+        {:label "klinedata"}
+        {:label "pepbs"}
+        {:label "logpepbs"}
+        {:label "earning"}
+        {:label "revenue"}
+        {:label "announcement"}
+        {:label "stockid list"}
+        ]}
+      {:label "fund"
+       :items
+       [{:label "basic info"}
+        {:label "gradefund"}
+        {:label "closeprices"}
+        {:label "netvalues"}
+        ]}
+      {:label "bond"}
+      {:label "licai"}
+      {:label "user"}
+      ]}
+    {:label "stock summary"}]})
+
+
+(defn tree-view [data tree-view-choice]
+  ;; BUG if data change children will not change
+  (let [children (reagent/atom [])
+        open? (reagent/atom false)]
+    (fn [{:keys [label items]} tree-view-choice]
+      [:div.tree-node {:style {:position "relative" :left "10px"}}
+       [:div
+        {:on-click
+         #(do (reset! children (if @open? [] items))
+              (swap! open? not)
+              (.log js/console tree-view-choice))}
+        [:div.label
+         ;; need to change to class -"open" +"close" o"leaf"
+         (if @open?
+           (if (or (nil? items) (empty? items))
+             (do
+               (reset! tree-view-choice label) "o ")
+             "- ")
+           "+ ")
+         label]]
+       (if @open?
+         (for [child @children]
+           ^{:key (str child)}
+           [tree-view child tree-view-choice]))])))
+
+(defn drawer []
   (let [query (reagent/atom "")
-        stockid (reagent/atom "")]
+        stockid (reagent/atom "")
+        tree-view-choice (reagent/atom "")
+        ticked? (reagent/atom false)
+        ]
     (fn [{:keys [id label]}]
       [re-com/v-box
-       ;; :div.drawer-child
        :children
        [[re-com/box
          :child
-         [:div.drawer-child-title id]],
+         [:div.stockid-input
+          [:div.stockid-label
+           "股票代码:"
+           [re-com/checkbox
+            :label "remember"
+            :model ticked?
+            :on-change
+            #(do (reset! ticked? %)
+                 (if % (dispatch [:remember-stockid @stockid]))) ;; % is true/false
+            ]
+           ]
+          [re-com/input-text
+           :class (log @query @stockid)
+           :model stockid
+           :on-change #(reset! stockid %)
+           :placeholder "600123.SH"]]
+         ],
         [re-com/box
          :child
          [re-com/single-dropdown
@@ -62,23 +138,9 @@
           :placeholder "Have a choice..."
           :on-change #(reset! query %)
           :width "100%"]
-         :style
-         {
-          :padding "0 10px"
-          }],
+         ],
         [re-com/box
-         :child
-         [:div.stockid-input
-          [:div.stockid-label "股票代码:"]
-          [re-com/input-text
-           :class (log @query @stockid)
-           :model stockid
-           :on-change #(reset! stockid %)
-           :placeholder "600123.SH"]]
-         :style
-         {
-          :padding "0 10px"
-          }],
+         :child [tree-view tree tree-view-choice]]
         ;; send input button
         [re-com/box
          :child
@@ -87,32 +149,27 @@
           :on-click #(dispatch
                       [:send-input
                        {:query @query
+                        :choice @tree-view-choice
                         :stockid @stockid}])
           :class "btn-warning"
           ]
-         :style
-         {
-          :padding "0 10px"
-          }],
+         ],
 
         ]
+       :width "100%"
        :gap "10px"
+       :style {:padding "20px"}
        ]
       ))
   )
 
 
-(defn drawer []
-  (let [index (subscribe [:left-bar-active])
-        item (nth conf/icons @index)
-        name (:id (nth conf/icons @index))
-        box [drawer-child item]
-        ]
-    [re-com/v-box
-     :children [box, ]
-     :gap "10px"
-     :width "100%"
-     ]))
+#_(defn drawer []
+  [re-com/v-box
+   :children [[drawer-child]]
+   :gap "10px"
+   :width "100%"
+   ])
 
 (defn input []
   (let [query @(subscribe [:input-text])]
@@ -138,31 +195,34 @@
   (log data)
   (reagent/create-class
    {
-    :component-did-mount (fn []
-                           (let [d3data (clj->js data)]
-                             (.. js/d3
-                                 (select "svg")
-                                 (selectAll "circle")
-                                 (data d3data)
-                                 enter
-                                 (append "svg:circle")
-                                 (attr "cx" (fn [d] (.-x d)))
-                                 (attr "cy" (fn [d] (.-y d)))
-                                 (attr "r" (fn [d] (.-r d)))
-                                 (attr "fill" (fn [d] (.-color d))))))
+    :component-did-mount
+    (fn []
+      (let [d3data (clj->js data)]
+        (.. js/d3
+            (select "svg")
+            (selectAll "circle")
+            (data d3data)
+            enter
+            (append "svg:circle")
+            (attr "cx" (fn [d] (.-x d)))
+            (attr "cy" (fn [d] (.-y d)))
+            (attr "r" (fn [d] (.-r d)))
+            (attr "fill" (fn [d] (.-color d))))))
 
-    :component-did-update (fn [this]
-                            (let [[_ data] (reagent/argv this)
-                                  d3data (clj->js data)
-                                  _ (log data)]
-                              (.. js/d3
-                                  (selectAll "circle")
-                                  (data d3data)
-                                  (attr "cx" (fn [d] (log d) (.-x d)))
-                                  (attr "cy" (fn [d] (.-y d)))
-                                  (attr "r" (fn [d] (.-r d))))))
+    :component-did-update
+    (fn [this]
+      (let [[_ data] (reagent/argv this)
+            d3data (clj->js data)
+            _ (log data)]
+        (.. js/d3
+            (selectAll "circle")
+            (data d3data)
+            (attr "cx" (fn [d] (log d) (.-x d)))
+            (attr "cy" (fn [d] (.-y d)))
+            (attr "r" (fn [d] (.-r d))))))
     :display-name "d3-inner"
-    :reagent-render (fn [] [:div [:svg {:width 150 :height 150}]])
+    :reagent-render
+    (fn [] [:div [:svg {:width 150 :height 150}]])
     }))
 
 (defn chart-1 []
@@ -185,7 +245,7 @@
        :size :smaller
        :on-click #(dispatch [:delete-show-panel-child id])
        ]]
-     [chart-1]])
+     #_[chart-1]])
   )
 
 (defn show-panel []
@@ -205,44 +265,45 @@
      )])
 
 (defn results []
-  (fn []
-    [:div.result-container
-     [input]
-     [re-com/button
-      :label "查看结果"
-      :on-click #(dispatch [:add-result])
-      :class "btn-primary"
-      :style
-      {
-       :margin-top "-10px"
-       :margin-bottom "10px"
-       }]
-     [show-panel]]))
+  [:div.result-container
+   [input]
+   [re-com/button
+    :label "查看结果"
+    :on-click #(dispatch [:get-data])
+    :class "btn-primary"
+    :style
+    {
+     :margin-top "-10px"
+     :margin-bottom "10px"
+     }]
+   [:pre [:code.json "{status:true, data:[]}"]]
+   [show-panel]])
 
 
 (defn main-panel []
   [re-com/h-box
    :min-height "100%"
    :min-width "100%"
-   :children [[re-com/box
-               :child [left-bar]
-               :size "80px"
-               :style
-               {
-                :background-color "#4C4957"
-                }]
-              [re-com/box
-               :child [drawer]
-               :size "300px"
-               :style
-               {
-                :background-color "#30333A"
-                }]
-              [re-com/box
-               :child [results]
-               :size "1 2 200px"
-               :style
-               {
-                :padding "0 20px"
-                :background-color "#D2D5DA"
-                }]]])
+   :children
+   [[re-com/box
+     :child [left-bar]
+     :size "80px"
+     :style
+     {
+      :background-color "#4C4957"
+      }]
+    [re-com/box
+     :child [drawer]
+     :size "300px"
+     :style
+     {
+      :background-color "#30333A"
+      }]
+    [re-com/box
+     :child [results]
+     :size "1 2 200px"
+     :style
+     {
+      :padding "0 20px"
+      :background-color "#D2D5DA"
+      }]]])

@@ -1,0 +1,13 @@
+{
+  "name": "data-nav-reframe",
+  "version": "0.0.1",
+  "author": "yu.zhao@joudou.com",
+  "scripts": {
+    "watch": "webpack -d --watch",
+    "build": "webpack -p"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "webpack": "^1.14.0"
+  }
+}
