@@ -1,3 +1,22 @@
-body {
-    color:red;
+div.not-expand {
+    &:before {
+        content: "+ "
+    }
+}
+
+div.expand {
+    &:before {
+        content: "- "
+    }
+}
+
+div.leaf {
+    &:before {
+        content: "-> "
+    }
+}
+
+div.active {
+    background-color: yellow;
+    color: blue;
 }

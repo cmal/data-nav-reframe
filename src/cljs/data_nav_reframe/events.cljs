@@ -70,8 +70,7 @@
 (reg-event-db
  :process-response
  (fn [db [_ data id]]
-   (.log js/console data id)
-   (assoc-in db [:show-panel-child id :text] (str data))))
+   (assoc-in db [:show-panel-child id :text] data)))
 
 (reg-event-db
  :delete-show-panel-child

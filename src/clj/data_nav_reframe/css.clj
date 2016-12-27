@@ -3,20 +3,33 @@
 
 
 (defstyles screen
-  [:body
-   {:color "red"}]
   [:div.result-container
    {:width "100%"}]
   [:div.rc-input-text
    {:width "100% !important"}]
   [:div.show-panel-child
-   {:width "100%"}
-   [:.child-text
-    {:float "left"
-     :color "blue"}]
+   {:width "100%"
+    :position "relative"
+    :transition "all 2s linear 2s"
+    }
+   [:pre {:transition "all 2s linear 0s"}]
    [:.child-delete
-    {:float "right"
-     :color "#999"}]]
+    {
+     :background-color "#999"
+     :color "#36f"
+     :right "10px"
+     :top "10px"
+     :position "absolute"
+     :z-index "1"
+     :border-radius "4px"
+     :box-shadow "2px 2px 2px rgba(0,0,0,.2)"
+     }
+    [:&:hover
+     {
+      :background-color "#cff"
+      }]
+    [:&:active {:box-shadow "1px 1px 1px rgba(0,0,0,0.2)"}]
+    ]]
   [:div.drawer-child-title
    {
     :background-color "rgba(0,0,0,0.25)"
@@ -36,4 +49,16 @@
    {
     :clear "both"
     }]
+  [:div.label
+   {
+    ;; :height "24px" not working
+    :background-color "#6c6"
+    :border-radius "3px"
+    :color "#c03"
+    }]
+  [:div.tree-node
+   {:position "relative"
+    :margin-left "10px"
+    :margin-top "3px"}
+   ]
   )

@@ -6,12 +6,14 @@
             [dirac.runtime]
             [reagent.core :as reagent]
             [ajax.core :refer [GET POST]]
+            [cljsjs.react.dom]
+            [cljsjs.react-flip-move]
             )
   )
 
 (dirac.runtime/install!)
 
-
+(def flip-move (reagent/adapt-react-class js/FlipMove))
 
 (defn left-bar-btn [index]
   (let [selected (subscribe [:left-bar-active])]
@@ -45,62 +47,79 @@
       :child [left-bar-btn index]])])
 
 
-(def tree
-  {:label "APIs"
-   :items
-   [{:label "dashboard"
-     :items
-     [{:label "stock"
-       :items
-       [{:label "kchart"}
-        {:label "realtime info"}
-        {:label "fenshitu"}
-        {:label "klinedata"}
-        {:label "pepbs"}
-        {:label "logpepbs"}
-        {:label "earning"}
-        {:label "revenue"}
-        {:label "announcement"}
-        {:label "stockid list"}
-        ]}
-      {:label "fund"
-       :items
-       [{:label "basic info"}
-        {:label "gradefund"}
-        {:label "closeprices"}
-        {:label "netvalues"}
-        ]}
-      {:label "bond"}
-      {:label "licai"}
-      {:label "user"}
-      ]}
-    {:label "stock summary"}]})
+(def css-transition-group
+  (reagent/adapt-react-class js/React.addons.CSSTransitionGroup))
 
+(def transition-in  1)
+(def transition-out 0.2)
+
+(def style
+  (str
+   ".node-enter {
+      opacity: 0.01;
+      max-height: 0px;
+    }
+
+    .node-enter-active {
+      opacity: 1;
+      max-height: 999px;
+      -moz-transition: all " transition-in "s ease-in-out;
+      -webkit-transition: all " transition-in "s ease-in-out;
+      -ms-transition: all " transition-in "s ease-in-out;
+      -o-transition: all " transition-in "s ease-in-out;
+      transition: all " transition-in "s ease-in-out;
+    }
+
+    .node-leave {
+      opacity: 1;
+      max-height: 999px;
+    }
+
+    .node-leave-active {
+      opacity: 0.1;
+      max-height: 1px;
+      -moz-transition: all " transition-out "s ease-in-out;
+      -webkit-transition: all " transition-out "s ease-in-out;
+      -ms-transition: all " transition-out "s ease-in-out;
+      -o-transition: all " transition-out "s ease-in-out;
+      transition: all " transition-out "s ease-in-out;
+  }"))
 
 (defn tree-view [data tree-view-choice]
   ;; BUG if data change children will not change
   (let [children (reagent/atom [])
-        open? (reagent/atom false)]
+        open? (reagent/atom false)
+        _ (.log js/console "re-rendering..." data)
+        klass (reagent/atom "not-expand")
+        ]
     (fn [{:keys [label items]} tree-view-choice]
-      [:div.tree-node {:style {:position "relative" :left "10px"}}
+      [:div.tree-node
        [:div
-        {:on-click
-         #(do (reset! children (if @open? [] items))
-              (swap! open? not)
-              (.log js/console tree-view-choice))}
+        [:style style]
         [:div.label
-         ;; need to change to class -"open" +"close" o"leaf"
+         {:class (str @klass
+                      (when (= @tree-view-choice label)
+                        " active"))
+          :on-click
+          #(do (reset! children (if @open? [] items))
+               (swap! open? not)
+               (if @open?
+                 (if (or (nil? items) (empty? items))
+                   (do (reset! tree-view-choice label)
+                       (reset! klass "leaf")
+                       (.log js/console @tree-view-choice label)
+                       )
+                   (reset! klass "expand"))
+                 (reset! klass "not-expand")))}
+         label]
+        [css-transition-group
+         {:transition-name "node"
+          :transition-enter-timeout (* transition-in 1000)
+          :transition-leave-timeout (* transition-out 1000)}
          (if @open?
-           (if (or (nil? items) (empty? items))
-             (do
-               (reset! tree-view-choice label) "o ")
-             "- ")
-           "+ ")
-         label]]
-       (if @open?
-         (for [child @children]
-           ^{:key (str child)}
-           [tree-view child tree-view-choice]))])))
+           (for [child @children]
+             ^{:key (str child)}
+             [tree-view child tree-view-choice]))]]])))
 
 (defn drawer []
   (let [query (reagent/atom "")
@@ -130,7 +149,7 @@
            :on-change #(reset! stockid %)
            :placeholder "600123.SH"]]
          ],
-        [re-com/box
+        #_[re-com/box
          :child
          [re-com/single-dropdown
           :choices conf/home-choices
@@ -140,7 +159,9 @@
           :width "100%"]
          ],
         [re-com/box
-         :child [tree-view tree tree-view-choice]]
+         :child [tree-view conf/tree tree-view-choice]
+         :style {:width "60px"
+                 :font-size "20px"}]
         ;; send input button
         [re-com/box
          :child
@@ -163,14 +184,6 @@
       ))
   )
 
-
-#_(defn drawer []
-  [re-com/v-box
-   :children [[drawer-child]]
-   :gap "10px"
-   :width "100%"
-   ])
-
 (defn input []
   (let [query @(subscribe [:input-text])]
     [re-com/input-textarea
@@ -185,7 +198,6 @@
       :top "10px"
       :outline "10px solid rgba(172,172,172,0.25)"
       :outline-offset "-10px"
-      :margin-bottom "10px"
       :border "0"
       :border-radius "0"
       :font-size "24px"
@@ -229,40 +241,51 @@
   (let [data @(subscribe [:circles])]
     (fn []
       [:div.chart
-       ;; [re-com/throbber
-       ;;  :size :small
-       ;;  :color "gray"]
        [d3-inner data]])))
 
+(defn highlight-code [html-node]
+  (let [nodes (.querySelectorAll html-node "pre code")]
+    (loop [i (.-length nodes)]
+      (when-not (neg? i)
+        (when-let [item (.item nodes i)]
+          (.highlightBlock js/hljs item))
+        (recur (dec i))))))
+
 (defn show-panel-child []
-  (fn [{:keys [id text]}]
-    [:div.show-panel-child
-     [:div.child-text
-      text]
-     [:div.child-delete
-      [re-com/md-icon-button
-       :md-icon-name "zmdi-delete"
-       :size :smaller
-       :on-click #(dispatch [:delete-show-panel-child id])
-       ]]
-     #_[chart-1]])
-  )
+  (let [display-delete (reagent/atom false)]
+    (reagent/create-class
+     {
+      :component-did-mount #(highlight-code (reagent/dom-node %))
+      :component-did-update #(highlight-code (reagent/dom-node %))
+      :reagent-render
+      (fn [{:keys [id text]}]
+        [:div.show-panel-child
+         {:on-mouse-over #(reset! display-delete true)
+          :on-mouse-leave #(reset! display-delete false)}
+         [:pre
+          [:code.clojure (str text)]]
+         [:div.child-delete
+          {:style {:display (if @display-delete "block" "none")}}
+          [re-com/md-icon-button
+           :md-icon-name "zmdi-delete"
+           :size :regular
+           :on-click #(dispatch [:delete-show-panel-child id])
+           ]]
+         ])})))
 
 (defn show-panel []
-  [:div.show-panel
-   (let [children @(subscribe [:show-panel-child])]
-     (for [child children
-           :let [[k v] child]
-           ]
-       ^{:key k}
-       [re-com/box
-        :child [show-panel-child v]
-        :style
-        {
-         :background-color "white"
-         :margin-bottom "10px"
-         }])
-     )])
+  (let [children (subscribe [:show-panel-child])]
+    (fn []
+      [:div.show-panel
+       (for [child @children
+             :let [[k v] child]
+             ]
+         ^{:key k}
+         [re-com/box
+          :child
+          [show-panel-child v]
+          ])
+       ])))
 
 (defn results []
   [:div.result-container
@@ -271,12 +294,7 @@
     :label "查看结果"
     :on-click #(dispatch [:get-data])
     :class "btn-primary"
-    :style
-    {
-     :margin-top "-10px"
-     :margin-bottom "10px"
-     }]
-   [:pre [:code.json "{status:true, data:[]}"]]
+    ]
    [show-panel]])
 
 

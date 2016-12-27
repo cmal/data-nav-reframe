@@ -1,7 +1,8 @@
 (defproject data-nav-reframe "0.1.0-SNAPSHOT"
   :dependencies [[org.clojure/clojure "1.9.0-alpha13"]
                  [org.clojure/clojurescript "1.9.293"]
-                 [reagent "0.6.0"]
+                 [reagent "0.6.0" :exclusions [cljsjs/react]]
+                 [cljsjs/react-with-addons "15.2.1-0"]
                  [re-frame "0.8.0"]
                  [re-frisk "0.3.0"]
                  [org.clojure/core.async "0.2.391"]
@@ -10,6 +11,8 @@
                  [secretary "1.2.3"]
                  [garden "1.3.2"]
                  [ns-tracker "0.3.0"]
+                 [cljsjs/react-flip-move "2.7.2-0"]
+                 [instaparse "1.4.4"]
                  ]
 
   :plugins [[lein-cljsbuild "1.1.4"]
