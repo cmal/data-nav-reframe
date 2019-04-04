@@ -38,31 +38,31 @@
        :items
        [{:label "test" :method "GET" :url "/test"}
         {:label "test2" :method "GET" :url "/test2"}
-        {:label "dashboard" :method "GET" :url "/dashboard/:secucode" :secucode ""}
-        {:label "kchart" :method "GET" :url "/kchartdata/:secucode" :secucode ""}
-        {:label "latestinfo" :method "GET" :url "/stock/latestinfo/:secucode" :secucode ""}
-        {:label "realtime info" :method "GET" :url "/stock/realtimeinfo" :params [:stockids ""]} ;; should be stockid separated by `,`
-        {:label "fenshitu" :method "GET" :url "/stock/fenshitu" :params [:stockid ""]}
-        {:label "klinedata" :method "GET" :url "/stock/klinedata" :params [:stockid "" :period ""]}
+        {:label "dashboard" :method "GET" :url "/dashboard/:secucode"} ;; assoc :secucode to this to make (get-url url-parser gen-str {...}) work
+        {:label "kchart" :method "GET" :url "/kchartdata/:secucode"}
+        {:label "latestinfo" :method "GET" :url "/stock/latestinfo/:secucode"}
+        {:label "realtime info" :method "GET" :url "/stock/realtimeinfo" :params [:stockids]} ;; should be stockid separated by `,`
+        {:label "fenshitu" :method "GET" :url "/stock/fenshitu" :params [:stockid]}
+        {:label "klinedata" :method "GET" :url "/stock/klinedata" :params [:stockid :period]}
         ;; {:label "priceforward" :method "GET" :url "/stock/priceforward"}
-        {:label "testprices" :method "GET" :url "/stock/testprices/:secucode" :secucode ""}
+        {:label "testprices" :method "GET" :url "/stock/testprices/:secucode"}
         {:label "placement" :method "GET" :url "/stock/placementinfo"}
         {:label "newstock" :method "GET" :url "/stock/newstockinfo"}
-        {:label "basicinfo" :method "GET" :url "/stock/basicinfo/:secucode" :secucode ""}
+        {:label "basicinfo" :method "GET" :url "/stock/basicinfo/:secucode"}
         ;; {:label "closeprices" :method "GET" :url "/stock/closeprices" :params [:stockid "" :startdate "" :enddate ""]}
         ;; {:label "dividend" :method "GET" :url "/stock/dividend"}
         {:label "tradingcalendar"}
         {:label "istradingday"}
         {:label "pretradingday"}
-        {:label "pepbs" :method "GET" :url "/stock/pepbs/:secucode" :secucode ""}
-        {:label "logpepbs" :method "GET" :url "/stock/logpepbs/:secucode" :secucode ""}
-        {:label "earning" :method "GET" :url "/stock/earning/:secucode" :secucode ""}
-        {:label "revenue" :method "GET" :url "/stock/revenue/:secucode" :secucode ""}
-        {:label "namefinder" :method "GET" :url "/stock/namefinder" :params [:keyword "" :count ""]}
-        {:label "announcements" :method "GET" :url "/stock/announcements" :params [:secucode ""]}
+        {:label "pepbs" :method "GET" :url "/stock/pepbs/:secucode"}
+        {:label "logpepbs" :method "GET" :url "/stock/logpepbs/:secucode"}
+        {:label "earning" :method "GET" :url "/stock/earning/:secucode"}
+        {:label "revenue" :method "GET" :url "/stock/revenue/:secucode"}
+        {:label "namefinder" :method "GET" :url "/stock/namefinder" :params [:keyword :count]}
+        {:label "announcements" :method "GET" :url "/stock/announcements" :params [:secucode]}
         {:label "stockidlist" :method "GET" :url "/stockidlist"}
-        {:label "merger" :method "GET" :url "/merger/:id" :id ""}
-        {:label "internal" :method "GET" :url "/internal/:id" :id ""}
+        {:label "merger" :method "GET" :url "/merger/:id"}
+        {:label "internal" :method "GET" :url "/internal/:id"}
         ]}
       {:label "fund"
        :items
@@ -90,18 +90,30 @@ seg = #'[A-Za-z0-9]+';
 keyword = < ':' > #'[A-Za-z0-9]+';
 "))
 
-(defn gen-str [mp [k v]]
+(defn- gen-str [mp [k v]]
   (if (= :keyword k)
     (get mp (keyword v))
     v))
 
-(defn get-url
+(defn- get-url-str
   [parser f mp]
-  (str "/" (s/join "/" (map #(f mp %) (parser (:url mp))))))
+  (str url-prefix "/" (s/join "/" (map #(f mp %) (parser (:url mp))))))
 
+(defn get-url [mp]
+  (get-url-str url-parser gen-str mp))
 
 ;; USAGE:
 ;; (get-url
 ;;  url-parser
 ;;  gen-str
 ;;  {:url "/stock/:id/:date/dsaf" :id "600123.SH" :date "20161111"})
+
+(defn- gen-key-arr [[k v]]
+  (if (= :keyword k) (keyword v)))
+
+(defn- get-keys [parser f mp]
+  (vec (remove nil? (map f (parser (:url mp))))))
+
+(defn get-keywords [mp]
+  (get-keys url-parser gen-key-arr mp))
+;; (get-keywords {:url "/stock/:id/:date/ddd"})

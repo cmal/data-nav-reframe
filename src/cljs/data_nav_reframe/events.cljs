@@ -83,3 +83,14 @@
  :remember-stockid
  (fn [db [_ stockid]]
    (assoc db :stockid stockid)))
+
+(reg-event-db
+ :change-sel-info
+ (fn [db [_ k v]]
+   (.log js/console "change-sel-info" k v)
+   (assoc-in db [:sel-info k] (or v ""))))
+
+(reg-event-db
+ :empty-sel-info
+ (fn [db _]
+   (assoc db :sel-info {})))

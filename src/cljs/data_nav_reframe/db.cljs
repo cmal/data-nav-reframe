@@ -23,4 +23,5 @@
               :y 70
               :r 30
               :color "blue"}]
+   :sel-info {}
    })

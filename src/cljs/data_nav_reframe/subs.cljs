@@ -2,7 +2,9 @@
   (:require-macros [reagent.ratom :refer [reaction]]
                    [data-nav-reframe.core :refer [log]])
   (:require [re-frame.core :refer [reg-sub]]
-            [dirac.runtime]))
+            [dirac.runtime]
+            [data-nav-reframe.config :as conf]
+            ))
 
 (dirac.runtime/install!)
 
@@ -25,3 +27,22 @@
  :circles
  (fn [db _]
    (:circles db)))
+
+(reg-sub
+ :sel-info
+ (fn [db _]
+   (:sel-info db)))
+
+(reg-sub
+ :sel-info-url
+ :<- [:sel-info]
+ (fn [info _]
+   (get info :url)))
+
+(reg-sub
+ :sel-info-keys
+ :<- [:sel-info]
+ (fn [info _]
+   (concat
+    (get info :params)
+    (conf/get-keywords info))))

@@ -85,19 +85,23 @@
       transition: all " transition-out "s ease-in-out;
   }"))
 
-(defn tree-view [data tree-view-choice]
+(defn tree-view [data tree-view-choice tree-view-level]
   ;; BUG if data change children will not change
   (let [children (reagent/atom [])
         open? (reagent/atom false)
-        _ (.log js/console "re-rendering..." data)
+        ;; _ (.log js/console "re-rendering..." data)
         klass (reagent/atom "not-expand")
         ]
-    (fn [{:keys [label items]} tree-view-choice]
+    (fn [{:keys [label items method url params]} tree-view-choice]
       [:div.tree-node
        [:div
         [:style style]
         [:div.label
-         {:class (str @klass
+         {:style
+          {:height (str (- 40 (* 5 tree-view-level)) "px")
+           :font-size (str (- 30 (* 4 tree-view-level)) "px")
+           :margin-left (str (* 10 tree-view-level) "px")}
+          :class (str @klass
                       (when (= @tree-view-choice label)
                         " active"))
           :on-click
@@ -107,10 +111,21 @@
                  (if (or (nil? items) (empty? items))
                    (do (reset! tree-view-choice label)
                        (reset! klass "leaf")
-                       (.log js/console @tree-view-choice label)
-                       )
+                       ;; (.log js/console @tree-view-choice label)
+                       #_(.log js/console "data" data)
+                       (if (contains? data :params)
+                         (dispatch [:change-sel-info :params (get data :params)]))
+                       (dispatch [:change-sel-info :url (conf/get-url data)])
+                       (doseq [k (conf/get-keywords data)]
+                         (dispatch [:change-sel-info k ""])))
                    (reset! klass "expand"))
-                 (reset! klass "not-expand")))}
+                 (do (reset! klass "not-expand")
+                     (dispatch [:empty-sel-info])
+                     )))}
+         (if (or (nil? items) (empty? items))
+           (if (= @tree-view-choice label) "✋" "🍀") ;; UNICODE!
+           (if @open? "🌴" "🎄")) ;; UNICODE!
+         " "
          label]
         [css-transition-group
          {:transition-name "node"
@@ -119,36 +134,60 @@
          (if @open?
            (for [child @children]
              ^{:key (str child)}
-             [tree-view child tree-view-choice]))]]])))
+             [tree-view child tree-view-choice (inc tree-view-level)]))]]])))
+
+(defn stockid-child [stockid]
+  (let [ticked? (reagent/atom false)]
+    (fn [stockid]
+      [re-com/box
+       :child
+       [:div.stockid-input
+        [:div.stockid-label
+         "股票代码:"
+         [re-com/checkbox
+          :label "remember"
+          :model ticked?
+          :on-change
+          #(do (reset! ticked? %)
+               (if % (dispatch [:remember-stockid @stockid]))) ;; % is true/false
+          ]
+         ]
+        [re-com/input-text
+         :model stockid
+         :on-change #(reset! stockid %)
+         :placeholder "600123.SH"]]
+       ])))
+
+(defn edit-key-child [key]
+  (let [text (reagent/atom "")]
+    [re-com/box
+     :child
+     [:div.input
+      [:div.label key]
+      [re-com/input-text
+       :model text
+
+       :on-change #(do (dispatch [:change-sel-info key %])
+                       (swap! text %))]]
+     ]))
+
+(defn edit-key-children []
+  (let [ks (subscribe [:sel-info-keys])]
+    (fn []
+      (.log js/console "edit-key-children" @ks)
+      [:div.edit-key-children
+       (for [k @ks]
+         ^{:key k} [edit-key-child k])])))
 
 (defn drawer []
   (let [query (reagent/atom "")
         stockid (reagent/atom "")
         tree-view-choice (reagent/atom "")
-        ticked? (reagent/atom false)
         ]
-    (fn [{:keys [id label]}]
-      [re-com/v-box
+    (fn []
+      [re-com/v-box ;; edit-box
        :children
-       [[re-com/box
-         :child
-         [:div.stockid-input
-          [:div.stockid-label
-           "股票代码:"
-           [re-com/checkbox
-            :label "remember"
-            :model ticked?
-            :on-change
-            #(do (reset! ticked? %)
-                 (if % (dispatch [:remember-stockid @stockid]))) ;; % is true/false
-            ]
-           ]
-          [re-com/input-text
-           :class (log @query @stockid)
-           :model stockid
-           :on-change #(reset! stockid %)
-           :placeholder "600123.SH"]]
-         ],
+       [[edit-key-children],
         #_[re-com/box
          :child
          [re-com/single-dropdown
@@ -159,11 +198,11 @@
           :width "100%"]
          ],
         [re-com/box
-         :child [tree-view conf/tree tree-view-choice]
+         :child [tree-view conf/tree tree-view-choice 0]
          :style {:width "60px"
                  :font-size "20px"}]
         ;; send input button
-        [re-com/box
+        #_[re-com/box
          :child
          [re-com/button
           :label "生成查询语句"
@@ -175,7 +214,6 @@
           :class "btn-warning"
           ]
          ],
-
         ]
        :width "100%"
        :gap "10px"

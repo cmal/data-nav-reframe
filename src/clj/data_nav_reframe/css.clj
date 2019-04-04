@@ -49,14 +49,14 @@
    {
     :clear "both"
     }]
-  [:div.label
+  #_[:div.label
    {
     ;; :height "24px" not working
     :background-color "#6c6"
     :border-radius "3px"
     :color "#c03"
     }]
-  [:div.tree-node
+  #_[:div.tree-node
    {:position "relative"
     :margin-left "10px"
     :margin-top "3px"}
